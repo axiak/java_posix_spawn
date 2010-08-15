@@ -1,9 +1,9 @@
-package org.runutils;
+//package org.runutils;
 
 import java.io.*;
 
 public class SpawnProcess {
-    native public static SpawnedProcess exec(String [] cmdarray, String [] env) throws IndexOutOfBoundsException;
+    native private static SpawnedProcess exec_process(String [] cmdarray, String [] env) throws IndexOutOfBoundsException;
     native private static void killProcess(int pid);
     native private static int waitForProcess(int pid);
 
@@ -13,11 +13,18 @@ public class SpawnProcess {
         private int pid;
         private boolean exited;
 
-        SpawnedProcess (String name, int pid) {
+        private OutputStream stdin;
+        private InputStream stdout;
+        private InputStream stderr;
+
+        SpawnedProcess (String name, int pid, FileDescriptor [] fds) {
             this.pid = pid;
             this.name = name;
             this.exited = false;
             this.exitValue = -1;
+            stdin = new FileOutputStream(fds[0]);
+            stdout = new FileInputStream(fds[1]);
+            stderr = new FileInputStream(fds[2]);
         }
 
         @Override
@@ -30,17 +37,17 @@ public class SpawnProcess {
 
         @Override
         public InputStream getInputStream () {
-            return null;
+            return stdout;
         }
 
         @Override
         public InputStream getErrorStream() {
-            return null;
+            return stderr;
         }
 
         @Override
         public OutputStream getOutputStream() {
-            return null;
+            return stdin;
         }
 
         @Override
@@ -72,18 +79,24 @@ public class SpawnProcess {
         System.loadLibrary("spawnlib");
     }
 
-    public static Process exec(String [] cmdarray) {
+    public static SpawnedProcess exec(String [] cmdarray, String [] envp) {
+        return exec_process(cmdarray, envp);
+    }
+
+    public static SpawnedProcess exec(String [] cmdarray) {
         return exec(cmdarray, new String[0]);
     }
 
-    public static Process exec(String command) {
+    public static SpawnedProcess exec(String command) {
         String[] cmdarray = {command};
         return exec(cmdarray, new String[0]);
     }
 
     public static void main(String args[]) {
         String[] breaker = new String[100000000];
-        String[] cmd = {"./test", "3"};
+        //String[] breaker = new String[10];
+        String[] cmd = {"./test.pl"};
+        byte [] message = new String("This is a test\n").getBytes();
         /*
         try {
             Runtime.getRuntime().exec(cmd);
@@ -93,8 +106,15 @@ public class SpawnProcess {
         */
         SpawnedProcess result = exec(cmd, new String[0]);
 
-        System.out.println("Finished code: " + result.waitFor());
-        System.out.println(result.exitValue());
+        try {
+            //System.out.print(message);
+            result.getOutputStream().write(message);
+            result.getOutputStream().flush();
+            //System.out.println("Exit code: " + result.waitFor());
+            while (true) {
+                System.out.print((char)result.getInputStream().read());
+            }
+        } catch (IOException ignored) {}
         /*
         try {
             Thread.currentThread().sleep(10000);

@@ -9,10 +9,10 @@ extern "C" {
 #endif
 /*
  * Class:     SpawnProcess
- * Method:    exec
+ * Method:    exec_process
  * Signature: ([Ljava/lang/String;[Ljava/lang/String;)LSpawnProcess/SpawnedProcess;
  */
-JNIEXPORT jobject JNICALL Java_SpawnProcess_exec
+JNIEXPORT jobject JNICALL Java_SpawnProcess_exec_1process
   (JNIEnv *, jclass, jobjectArray, jobjectArray);
 
 /*
