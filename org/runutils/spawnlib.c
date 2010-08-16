@@ -81,7 +81,6 @@ JNIEXPORT jobject JNICALL Java_runutils_SpawnProcess_exec_1process
     prepended_argv = createPrependedArgv(path, argv, length, fds);
 
     /* This is the call to spawn! */
-    printf("Test\n");
     retval = posix_spawnp(&cpid, path, NULL, NULL, prepended_argv, c_envp);
 
     if (retval != 0) {

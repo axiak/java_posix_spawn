@@ -9,8 +9,8 @@ class TestClass {
 
 
         try {
-            Process result = Runtime.getRuntime().exec(cmd);
-            //Process result = SpawnProcess.exec(cmd);
+            //Process result = Runtime.getRuntime().exec(cmd);
+            Process result = SpawnProcess.exec(cmd);
 
             while (true) {
                 System.out.print((char)result.getInputStream().read());
