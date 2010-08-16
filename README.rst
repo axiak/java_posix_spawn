@@ -11,7 +11,7 @@ Install / Usage
 
 This is very preliminary, so I'm just going to outline the steps you'd need to get it up and running.::
 
-    $ git clone git@github.com:axiak/java_posix_spawn.git
+    $ git clone https://axiak@github.com/axiak/java_posix_spawn.git
     $ cd java_posix_spawn/org/runutils
     $ javac SpawnProcess.java
     $ make
