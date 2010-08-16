@@ -1,7 +1,7 @@
 Synopsis
 ========
 
-This code attempts at implementing the ideas mentioned at http://bugs.sun.com/view_bug.do?bug_id=5049299.
+This code attempts to implement some of the ideas mentioned at http://bugs.sun.com/view_bug.do?bug_id=5049299.
 
 Basically, the goal is to avoid a fork() call whenever we need to spawn a process so that a large project
 does not have to unnecessarily duplicate its virtual memory usage.
