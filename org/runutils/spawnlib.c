@@ -27,9 +27,9 @@ char ** createPrependedArgv(char * path, char ** argv, int length, int * fds);
 /*
  * Class:     SpawnProcess
  * Method:    exec_process
- * Signature: ([Ljava/lang/String;[Ljava/lang/String;)LSpawnedProcess;
+ * Signature: ([Ljava/lang/String;[Ljava/lang/String;)Lrunutils/SpawnProcess$SpawnedProcess;
  */
-JNIEXPORT jobject JNICALL Java_SpawnProcess_exec_1process
+JNIEXPORT jobject JNICALL Java_runutils_SpawnProcess_exec_1process
   (JNIEnv * env, jclass clazz, jobjectArray cmdarray, jobjectArray envp)
 {
     int i, cpid, retval, length;
@@ -81,6 +81,7 @@ JNIEXPORT jobject JNICALL Java_SpawnProcess_exec_1process
     prepended_argv = createPrependedArgv(path, argv, length, fds);
 
     /* This is the call to spawn! */
+    printf("Test\n");
     retval = posix_spawnp(&cpid, path, NULL, NULL, prepended_argv, c_envp);
 
     if (retval != 0) {
@@ -88,7 +89,7 @@ JNIEXPORT jobject JNICALL Java_SpawnProcess_exec_1process
         goto end;
     }
 
-    cls = (*env)->FindClass(env, "SpawnProcess$SpawnedProcess");
+    cls = (*env)->FindClass(env, "runutils/SpawnProcess$SpawnedProcess");
     if (cls == 0) {
         goto end;
     }
@@ -125,7 +126,7 @@ JNIEXPORT jobject JNICALL Java_SpawnProcess_exec_1process
  * Method:    killProcess
  * Signature: (I)V
  */
-JNIEXPORT void JNICALL Java_SpawnProcess_killProcess
+JNIEXPORT void JNICALL Java_runutils_SpawnProcess_killProcess
   (JNIEnv * env, jclass clazz, jint pid)
 {
     kill(pid, 2);
@@ -138,7 +139,7 @@ JNIEXPORT void JNICALL Java_SpawnProcess_killProcess
  * Method:    waitForProcess
  * Signature: (I)I
  */
-JNIEXPORT jint JNICALL Java_SpawnProcess_waitForProcess
+JNIEXPORT jint JNICALL Java_runutils_SpawnProcess_waitForProcess
   (JNIEnv * env, jclass clazz, jint pid)
 {
     /* Read http://www.opengroup.org/onlinepubs/000095399/functions/wait.html */

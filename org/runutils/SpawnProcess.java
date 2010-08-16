@@ -1,4 +1,4 @@
-//package org.runutils;
+package runutils;
 
 import java.io.*;
 
@@ -90,38 +90,6 @@ public class SpawnProcess {
     public static SpawnedProcess exec(String command) {
         String[] cmdarray = {command};
         return exec(cmdarray, new String[0]);
-    }
-
-    public static void main(String args[]) {
-        String[] breaker = new String[100000000];
-        //String[] breaker = new String[10];
-        String[] cmd = {"./test.pl"};
-        byte [] message = new String("This is a test\n").getBytes();
-        /*
-        try {
-            Runtime.getRuntime().exec(cmd);
-        } catch (IOException e) {
-            System.out.println("Error: " + e);
-        }
-        */
-        SpawnedProcess result = exec(cmd, new String[0]);
-
-        try {
-            //System.out.print(message);
-            result.getOutputStream().write(message);
-            result.getOutputStream().flush();
-            //System.out.println("Exit code: " + result.waitFor());
-            while (true) {
-                System.out.print((char)result.getInputStream().read());
-            }
-        } catch (IOException ignored) {}
-        /*
-        try {
-            Thread.currentThread().sleep(10000);
-        }
-        catch (InterruptedException ie) {
-        }*/
-
     }
 
 }
