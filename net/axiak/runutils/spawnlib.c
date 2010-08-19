@@ -6,12 +6,7 @@
 #include <unistd.h>
 #include <spawn.h>
 #include <fcntl.h>
-
-#define RESTARTABLE(_cmd, _result) do { \
-  do { \
-    _result = _cmd; \
-  } while((_result == -1) && (errno == EINTR)); \
-} while(0)
+#include "spawnlib.h"
 
 #define THROW_IO_EXCEPTION(cls, env) do { \
     cls = (*env)->FindClass(env, "java/io/IOException");    \
@@ -22,21 +17,21 @@
 char ** javaArrayToChar(JNIEnv * env, jobject array);
 void inline releaseCharArray(JNIEnv * env, jobject javaArray, char ** cArray);
 jobjectArray fdIntToObject(JNIEnv * env, int * fds, size_t length);
-char ** createPrependedArgv(char * path, char ** argv, int length, int * fds);
+char ** createPrependedArgv(char * path, char * chdir, char ** argv, int length, int * fds);
+void freePargv(char ** pargv);
 
 /*
  * Class:     SpawnProcess
  * Method:    exec_process
  * Signature: ([Ljava/lang/String;[Ljava/lang/String;)Lrunutils/SpawnProcess$SpawnedProcess;
  */
-JNIEXPORT jobject JNICALL Java_runutils_SpawnProcess_exec_1process
-  (JNIEnv * env, jclass clazz, jobjectArray cmdarray, jobjectArray envp)
+JNIEXPORT jobject JNICALL Java_net_axiak_runutils_SpawnProcess_exec_1process
+(JNIEnv * env, jclass clazz, jobjectArray cmdarray, jobjectArray envp, jstring chdir)
 {
-    int i, cpid, retval, length;
+    int cpid, retval, length;
     jboolean iscopy;
-    char ** argv = NULL, ** c_envp = NULL, ** prepended_argv = NULL;
+    char ** argv = NULL, ** c_envp = NULL, ** prepended_argv = NULL, *tmp;
     jobjectArray ret = NULL;
-    jstring tmp;
     jstring program_name;
     jmethodID mid;
     jclass cls;
@@ -78,17 +73,22 @@ JNIEXPORT jobject JNICALL Java_runutils_SpawnProcess_exec_1process
     fds[1] = pipe_fd2[1];
     fds[2] = pipe_fd3[1];
 
-    prepended_argv = createPrependedArgv(path, argv, length, fds);
+    /* Get the cwd */
+    tmp = (char *)(*env)->GetStringUTFChars(env, chdir, &iscopy);
+
+    prepended_argv = createPrependedArgv(path, tmp, argv, length, fds);
 
     /* This is the call to spawn! */
     retval = posix_spawnp(&cpid, path, NULL, NULL, prepended_argv, c_envp);
+
+    (*env)->ReleaseStringChars(env, chdir, tmp);
 
     if (retval != 0) {
         THROW_IO_EXCEPTION(cls, env);
         goto end;
     }
 
-    cls = (*env)->FindClass(env, "runutils/SpawnProcess$SpawnedProcess");
+    cls = (*env)->FindClass(env, "net/axiak/runutils/SpawnProcess$SpawnedProcess");
     if (cls == 0) {
         goto end;
     }
@@ -113,6 +113,7 @@ JNIEXPORT jobject JNICALL Java_runutils_SpawnProcess_exec_1process
 
  end:
     /* Here we make sure we are good memory citizens. */
+    freePargv(prepended_argv);
     if (argv != NULL)
         releaseCharArray(env, cmdarray, argv);
     if (envp != NULL)
@@ -125,7 +126,7 @@ JNIEXPORT jobject JNICALL Java_runutils_SpawnProcess_exec_1process
  * Method:    killProcess
  * Signature: (I)V
  */
-JNIEXPORT void JNICALL Java_runutils_SpawnProcess_killProcess
+JNIEXPORT void JNICALL Java_net_axiak_runutils_SpawnProcess_killProcess
   (JNIEnv * env, jclass clazz, jint pid)
 {
     kill(pid, 2);
@@ -138,7 +139,7 @@ JNIEXPORT void JNICALL Java_runutils_SpawnProcess_killProcess
  * Method:    waitForProcess
  * Signature: (I)I
  */
-JNIEXPORT jint JNICALL Java_runutils_SpawnProcess_waitForProcess
+JNIEXPORT jint JNICALL Java_net_axiak_runutils_SpawnProcess_waitForProcess
   (JNIEnv * env, jclass clazz, jint pid)
 {
     /* Read http://www.opengroup.org/onlinepubs/000095399/functions/wait.html */
@@ -189,7 +190,6 @@ jobjectArray fdIntToObject(JNIEnv * env, int * fds, size_t length)
     jobjectArray result;
     jmethodID fdesc;
     jfieldID field_fd;
-    jobject tmp;
     int i;
 
     if (clazz == 0) {
@@ -220,21 +220,23 @@ jobjectArray fdIntToObject(JNIEnv * env, int * fds, size_t length)
     return result;
 }
 
-char ** createPrependedArgv(char * path, char ** argv, int length, int * fds)
+char ** createPrependedArgv(char * path, char * chdir, char ** argv, int length, int * fds)
 {
-    char ** pargv = (char **)malloc(sizeof(char *) * (length + 5));
+    char ** pargv = (char **)malloc(sizeof(char *) * (length + 6));
     int i;
 
     if (pargv == NULL) {
         return NULL;
     }
 
-    pargv[0] = path;
-
-    for (i = 1; i < (length + 5); i++) {
+    for (i = 1; i < (length + 6); i++) {
         pargv[i] = NULL;
     }
+    pargv[0] = path;
+    pargv[4] = chdir;
 
+
+    /* Set fds */
     for (i = 0; i < 3; i++) {
         pargv[i + 1] = (char *)malloc(3 * fds[i]);
         if (pargv[i + 1] == NULL) {
@@ -244,12 +246,19 @@ char ** createPrependedArgv(char * path, char ** argv, int length, int * fds)
     }
 
     for (i = 0; i < length; i++) {
-        pargv[i + 4] = argv[i];
+        pargv[i + 5] = argv[i];
     }
 
     return pargv;
 
  error:
+    freePargv(pargv);
+    return NULL;
+}
+
+void freePargv(char ** pargv)
+{
+    int i;
     if (pargv != NULL) {
         for (i = 1; i < 4; i++) {
             if (pargv[i] != NULL) {
@@ -258,5 +267,4 @@ char ** createPrependedArgv(char * path, char ** argv, int length, int * fds)
         }
         free(pargv);
     }
-    return NULL;
 }

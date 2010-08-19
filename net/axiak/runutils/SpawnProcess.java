@@ -1,11 +1,13 @@
-package runutils;
+package net.axiak.runutils;
 
 import java.io.*;
 
 public class SpawnProcess {
-    native private static SpawnedProcess exec_process(String [] cmdarray, String [] env) throws IndexOutOfBoundsException;
+    native private static SpawnedProcess exec_process(String [] cmdarray, String [] env, String chdir) throws IndexOutOfBoundsException;
     native private static void killProcess(int pid);
     native private static int waitForProcess(int pid);
+    private static boolean libLoaded = false;
+    private static SpawnProcess instance = null;
 
     private static class SpawnedProcess extends Process {
         private String name;
@@ -76,20 +78,39 @@ public class SpawnProcess {
     }
 
     static {
-        System.loadLibrary("spawnlib");
+        try {
+            System.loadLibrary("spawnlib");
+            libLoaded = true;
+        }
+        catch (Exception t) {
+        }
     }
 
-    public static SpawnedProcess exec(String [] cmdarray, String [] envp) {
-        return exec_process(cmdarray, envp);
+    public Process exec(String [] cmdarray, String [] envp, String chdir) {
+        if (libLoaded) {
+            return exec_process(cmdarray, envp, chdir);
+        } else {
+            return null;
+        }
     }
 
-    public static SpawnedProcess exec(String [] cmdarray) {
+    public Process exec(String [] cmdarray, String [] envp) {
+        return exec(cmdarray, envp, ".");
+    }
+
+    public Process exec(String [] cmdarray) {
         return exec(cmdarray, new String[0]);
     }
 
-    public static SpawnedProcess exec(String command) {
+    public Process exec(String command) {
         String[] cmdarray = {command};
         return exec(cmdarray, new String[0]);
     }
 
+    public static SpawnProcess getInstance() {
+        if (instance == null) {
+            instance = new SpawnProcess();
+        }
+        return instance;
+    }
 }

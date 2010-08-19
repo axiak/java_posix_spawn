@@ -12,11 +12,11 @@ Install / Usage
 This is very preliminary, so I'm just going to outline the steps you'd need to get it up and running.::
 
     $ git clone https://axiak@github.com/axiak/java_posix_spawn.git
-    $ cd java_posix_spawn/org/runutils
+    $ cd java_posix_spawn/net/axiak/runutils
     $ javac SpawnProcess.java
     $ make
     $ make install # <-- This moves the helper binrunner to /usr/bin/
-    $ cd ../
+    $ cd ../../../
     $ javac TestClass.java
     $ java -Xms400m -Xmx2000m TestClass # <-- This should be tuned
 

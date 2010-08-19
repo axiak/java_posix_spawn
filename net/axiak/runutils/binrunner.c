@@ -13,11 +13,10 @@ int main(int argc, char ** argv)
 {
     int fds_map[3] = {-1, -1, -1};
     int i, params;
-    extern char **environ;
     char ** new_argv;
 
-    if (argc < 5) {
-        fprintf(stderr, "Usage: %s stdin# stdout# stderr# program [argv0 ... ]\n",
+    if (argc < 6) {
+        fprintf(stderr, "Usage: %s stdin# stdout# stderr# chdir program [argv0 ... ]\n",
                 argv[0]);
         return -1;
     }
@@ -32,6 +31,8 @@ int main(int argc, char ** argv)
             return -1;
         }
     }
+
+    /*
     for (i = 3; i < sysconf(_SC_OPEN_MAX); i++) {
         params = fcntl(i, F_GETFD, 0);
         if (!(fcntl(i, F_GETFD, 0) & FD_CLOEXEC)) {
@@ -41,14 +42,22 @@ int main(int argc, char ** argv)
             }
         }
     }
+    */
 
-    new_argv = (char **)malloc(sizeof(char *) * (argc - 3));
-    for (i = 4; i < argc; i++) {
-        new_argv[i - 4] = argv[i];
+    if (!(strlen(argv[4]) == 1 && strncmp(argv[4], ".", 1) == 0)) {
+        if (chdir(argv[4]) != 0) {
+            fprintf(stderr, "Error in chdir()\n");
+            return -1;
+        }
     }
-    new_argv[argc - 4] = NULL;
 
-    if (execve(argv[4], new_argv, environ) == -1) {
+    new_argv = (char **)malloc(sizeof(char *) * (argc - 4));
+    for (i = 5; i < argc; i++) {
+        new_argv[i - 5] = argv[i];
+    }
+    new_argv[argc - 5] = NULL;
+
+    if (execvp(argv[5], new_argv) == -1) {
         fprintf(stderr, "Error: %s\n", strerror(errno));
         return -1;
     }
