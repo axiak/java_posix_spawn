@@ -24,8 +24,8 @@ public class SpawnProcess {
             this.name = name;
             this.exited = false;
             this.exitValue = -1;
-            stdin = new FileOutputStream(fds[0]);
-            stdout = new FileInputStream(fds[1]);
+            stdin = new BufferedOutputStream(new FileOutputStream(fds[0]));
+            stdout = new BufferedInputStream(new FileInputStream(fds[1]));
             stderr = new FileInputStream(fds[2]);
         }
 
@@ -78,31 +78,33 @@ public class SpawnProcess {
     }
 
     static {
-        try {
+        //try {
             System.loadLibrary("spawnlib");
             libLoaded = true;
-        }
-        catch (Exception t) {
-        }
+	    /* }
+        catch (Throwable t) {
+        }*/
     }
 
-    public Process exec(String [] cmdarray, String [] envp, String chdir) {
+    public Process exec(String [] cmdarray, String [] envp, File chdir) throws IOException {
         if (libLoaded) {
-            return exec_process(cmdarray, envp, chdir);
+            return exec_process(cmdarray, envp, chdir.getAbsolutePath());
         } else {
-            return null;
+	    System.err.println("Error loading library, falling back.");
+            Runtime runtime = Runtime.getRuntime();
+	    return runtime.exec(cmdarray, envp, chdir);
         }
     }
 
-    public Process exec(String [] cmdarray, String [] envp) {
-        return exec(cmdarray, envp, ".");
+    public Process exec(String [] cmdarray, String [] envp) throws IOException {
+        return exec(cmdarray, envp, new File("."));
     }
 
-    public Process exec(String [] cmdarray) {
+    public Process exec(String [] cmdarray) throws IOException {
         return exec(cmdarray, new String[0]);
     }
 
-    public Process exec(String command) {
+    public Process exec(String command) throws IOException {
         String[] cmdarray = {command};
         return exec(cmdarray, new String[0]);
     }

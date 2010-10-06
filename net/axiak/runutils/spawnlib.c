@@ -1,8 +1,11 @@
+/* vi: set sw=4 ts=4: */
 #include <stdlib.h>
 #include <jni.h>
 #include <errno.h>
 #include <signal.h>
+#include <string.h>
 #include <sys/wait.h>
+#include <sys/stat.h>
 #include <unistd.h>
 #include <spawn.h>
 #include <fcntl.h>
@@ -19,6 +22,7 @@ void inline releaseCharArray(JNIEnv * env, jobject javaArray, char ** cArray);
 jobjectArray fdIntToObject(JNIEnv * env, int * fds, size_t length);
 char ** createPrependedArgv(char * path, char * chdir, char ** argv, int length, int * fds);
 void freePargv(char ** pargv);
+int isExecutable(char * path);
 
 /*
  * Class:     SpawnProcess
@@ -78,10 +82,22 @@ JNIEXPORT jobject JNICALL Java_net_axiak_runutils_SpawnProcess_exec_1process
 
     prepended_argv = createPrependedArgv(path, tmp, argv, length, fds);
 
+    /* Check to make sure the program is executable right before call. */
+    if (!isExecutable(path)) {
+      cls = (*env)->FindClass(env, "java/io/IOException");
+      (*env)->ThrowNew(env, cls, "Unable to run binrunner program -- please ensure that 'binrunner' is installed in a PATH location.");
+      goto end;
+    }
+	if (!isExecutable((char *)(*env)->GetStringUTFChars(env, program_name, &iscopy))) {
+      cls = (*env)->FindClass(env, "java/io/IOException");
+      (*env)->ThrowNew(env, cls, "Unable to run program -- please be sure it is installed with proper permissions.");
+      goto end;
+    }
+
     /* This is the call to spawn! */
     retval = posix_spawnp(&cpid, path, NULL, NULL, prepended_argv, c_envp);
 
-    (*env)->ReleaseStringChars(env, chdir, tmp);
+    (*env)->ReleaseStringChars(env, chdir, (const jchar *)tmp);
 
     if (retval != 0) {
         THROW_IO_EXCEPTION(cls, env);
@@ -116,7 +132,7 @@ JNIEXPORT jobject JNICALL Java_net_axiak_runutils_SpawnProcess_exec_1process
     freePargv(prepended_argv);
     if (argv != NULL)
         releaseCharArray(env, cmdarray, argv);
-    if (envp != NULL)
+   if (envp != NULL)
         releaseCharArray(env, envp, c_envp);
     return ret;
 }
@@ -268,3 +284,53 @@ void freePargv(char ** pargv)
         free(pargv);
     }
 }
+
+int _isAbsPathExecutable(char * absolute_path)
+{
+	struct stat filestat;
+	return stat(absolute_path, &filestat) == 0
+		&& filestat.st_mode & S_IXUSR;
+}
+
+
+int isExecutable(char * path)
+{
+	char *path_list, *path_copy, *ptr, *buffer;
+	int executable = 0;
+
+	if (_isAbsPathExecutable(path)) {
+		return 1;
+	}
+
+	path_list = getenv("PATH");
+	if (!path_list) {
+		path_list = "/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin";
+	}
+	path_copy = (char *)malloc(strlen(path_list) + 1);
+	strcpy (path_copy, path_list);
+	buffer = (char *)malloc(strlen(path_list) + strlen(path) + 2);
+
+	ptr = strtok(path_copy, ":");
+	while (ptr != NULL) {
+		strcpy(buffer, ptr);
+		strcat(buffer, "/");
+		strcat(buffer, path);
+		if (_isAbsPathExecutable(buffer)) {
+			executable = 1;
+			goto isExecutableEnd;
+		}
+		ptr = strtok(NULL, ":");
+	}
+isExecutableEnd:
+	free(buffer);
+	free(path_copy);
+	return executable;
+}
+
+/*
+Local Variables:
+c-file-style: "linux"
+c-basic-offset: 4
+tab-width: 4
+End:
+*/
