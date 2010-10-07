@@ -32,18 +32,6 @@ int main(int argc, char ** argv)
         }
     }
 
-    /*
-    for (i = 3; i < sysconf(_SC_OPEN_MAX); i++) {
-        params = fcntl(i, F_GETFD, 0);
-        if (!(fcntl(i, F_GETFD, 0) & FD_CLOEXEC)) {
-            if (close(i) != 0) {
-                fprintf(stderr, "Error in close\n");
-                return -1;
-            }
-        }
-    }
-    */
-
     if (!(strlen(argv[4]) == 1 && strncmp(argv[4], ".", 1) == 0)) {
         if (chdir(argv[4]) != 0) {
             fprintf(stderr, "Error in chdir()\n");

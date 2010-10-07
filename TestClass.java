@@ -6,13 +6,18 @@ class TestClass {
     public static void main(String [] args) {
         //String[] memory_soaker = new String[10000];
         String[] cmd = {"ls", "-l"};
-	System.out.println((char)(-1));
 
         try {
-            //Process result = Runtime.getRuntime().exec(cmd);
-            Process result = SpawnProcess.getInstance().exec(cmd);
+            //Runtime runtime = Runtime.getRuntime();
+            SpawnRuntime runtime = SpawnRuntime.getInstance();
+            /*
+            if (File.separatorChar == '/' && !runtime.isLinuxSpawnLoaded()) {
+                throw new RuntimeException("Boo!");
+            }
+            */
 
-	    //System.out.printf("" + result.getInputStream().available());
+            Process result = runtime.exec(cmd);
+        System.out.println(result.getInputStream());
 	    while (true) {
                 System.out.print((char)result.getInputStream().read());
 	    }

@@ -12,7 +12,7 @@
 #include "spawnlib.h"
 
 #define THROW_IO_EXCEPTION(cls, env) do { \
-    cls = (*env)->FindClass(env, "java/io/IOException");    \
+    cls = (*env)->FindClass(env, "java/io/IOException"); \
     (*env)->ThrowNew(env, cls, sys_errlist[errno]); \
 } while (0)
 
@@ -23,21 +23,22 @@ jobjectArray fdIntToObject(JNIEnv * env, int * fds, size_t length);
 char ** createPrependedArgv(char * path, char * chdir, char ** argv, int length, int * fds);
 void freePargv(char ** pargv);
 int isExecutable(char * path);
+static void closeSafely(int fd);
 
 /*
- * Class:     SpawnProcess
- * Method:    exec_process
- * Signature: ([Ljava/lang/String;[Ljava/lang/String;)Lrunutils/SpawnProcess$SpawnedProcess;
+ * Class:     net_axiak_runutils_SpawnedProcess
+ * Method:    execProcess
+ * Signature: ([Ljava/lang/String;[Ljava/lang/String;Ljava/lang/String;Ljava/io/FileDescriptor;Ljava/io/FileDescriptor;Ljava/io/FileDescriptor;)I
  */
-JNIEXPORT jobject JNICALL Java_net_axiak_runutils_SpawnProcess_exec_1process
-(JNIEnv * env, jclass clazz, jobjectArray cmdarray, jobjectArray envp, jstring chdir)
+JNIEXPORT jint JNICALL Java_net_axiak_runutils_SpawnedProcess_execProcess
+(JNIEnv * env, jclass clazz, jobjectArray cmdarray, jobjectArray envp, jstring chdir,
+ jobject stdin_fd, jobject stdout_fd, jobject stderr_fd)
 {
     int cpid, retval, length;
     jboolean iscopy;
     char ** argv = NULL, ** c_envp = NULL, ** prepended_argv = NULL, *tmp;
-    jobjectArray ret = NULL;
     jstring program_name;
-    jmethodID mid;
+    jfieldID fid;
     jclass cls;
     char path[50] = "binrunner";
     int fds[3] = {1, 0, 2};
@@ -46,30 +47,30 @@ JNIEXPORT jobject JNICALL Java_net_axiak_runutils_SpawnProcess_exec_1process
 
     if (pipe(pipe_fd1) != 0) {
         THROW_IO_EXCEPTION(cls, env);
-        goto end;
+        goto Catch;
     }
     if (pipe(pipe_fd2) != 0) {
         THROW_IO_EXCEPTION(cls, env);
-        goto end;
+        goto Catch;
     }
     if (pipe(pipe_fd3) != 0) {
         THROW_IO_EXCEPTION(cls, env);
-        goto end;
+        goto Catch;
     }
 
     length = (*env)->GetArrayLength(env, cmdarray);
     if (!length) {
         cls = (*env)->FindClass(env, "java/lang/IndexOutOfBoundsException");
         (*env)->ThrowNew(env, cls, "A non empty cmdarray is required.");
-        goto end;
+        goto Catch;
     }
 
     if ((argv = javaArrayToChar(env, cmdarray)) == NULL) {
-        goto end;
+        goto Catch;
     }
     program_name = (jstring)(*env)->GetObjectArrayElement(env, cmdarray, 0);
     if ((c_envp = javaArrayToChar(env, envp)) == NULL) {
-        goto end;
+        goto Catch;
     }
 
     /* Mapping for client to pipe. */
@@ -86,12 +87,12 @@ JNIEXPORT jobject JNICALL Java_net_axiak_runutils_SpawnProcess_exec_1process
     if (!isExecutable(path)) {
       cls = (*env)->FindClass(env, "java/io/IOException");
       (*env)->ThrowNew(env, cls, "Unable to run binrunner program -- please ensure that 'binrunner' is installed in a PATH location.");
-      goto end;
+      goto Catch;
     }
 	if (!isExecutable((char *)(*env)->GetStringUTFChars(env, program_name, &iscopy))) {
       cls = (*env)->FindClass(env, "java/io/IOException");
       (*env)->ThrowNew(env, cls, "Unable to run program -- please be sure it is installed with proper permissions.");
-      goto end;
+      goto Catch;
     }
 
     /* This is the call to spawn! */
@@ -101,12 +102,7 @@ JNIEXPORT jobject JNICALL Java_net_axiak_runutils_SpawnProcess_exec_1process
 
     if (retval != 0) {
         THROW_IO_EXCEPTION(cls, env);
-        goto end;
-    }
-
-    cls = (*env)->FindClass(env, "net/axiak/runutils/SpawnProcess$SpawnedProcess");
-    if (cls == 0) {
-        goto end;
+        goto Catch;
     }
 
     /* Mapping for parent to pipe. */
@@ -114,35 +110,44 @@ JNIEXPORT jobject JNICALL Java_net_axiak_runutils_SpawnProcess_exec_1process
     fds[1] = pipe_fd2[0];
     fds[2] = pipe_fd3[0];
 
-    fdResult = fdIntToObject(env, fds, 3);
-    if (fdResult == NULL) {
-        goto end;
+    cls = (*env)->FindClass(env, "java/io/FileDescriptor");
+    if (cls == 0) {
+        goto Catch;
     }
 
-    mid = (*env)->GetMethodID(env, cls, "<init>", "(Ljava/lang/String;I[Ljava/io/FileDescriptor;)V");
-    if (mid == 0) {
-        goto end;
+    fid = (*env)->GetFieldID(env, cls, "fd", "I");
+
+    (*env)->SetIntField(env, stdin_fd, fid, fds[0]);
+    (*env)->SetIntField(env, stdout_fd, fid, fds[1]);
+    (*env)->SetIntField(env, stderr_fd, fid, fds[2]);
+
+    fdResult = fdIntToObject(env, fds, 3);
+    if (fdResult == NULL) {
+        goto Catch;
     }
 
     (*env)->ExceptionClear(env);
-    ret = (*env)->NewObject(env, cls, mid, program_name, cpid, fdResult);
-
- end:
+ Finally:
     /* Here we make sure we are good memory citizens. */
     freePargv(prepended_argv);
     if (argv != NULL)
         releaseCharArray(env, cmdarray, argv);
    if (envp != NULL)
         releaseCharArray(env, envp, c_envp);
-    return ret;
+    return cpid;
+ Catch:
+    closeSafely(fds[0]);
+    closeSafely(fds[1]);
+    closeSafely(fds[2]);
+    goto Finally;
 }
 
 /*
- * Class:     SpawnProcess
+ * Class:     SpawnedProcess
  * Method:    killProcess
  * Signature: (I)V
  */
-JNIEXPORT void JNICALL Java_net_axiak_runutils_SpawnProcess_killProcess
+JNIEXPORT void JNICALL Java_net_axiak_runutils_SpawnedProcess_killProcess
   (JNIEnv * env, jclass clazz, jint pid)
 {
     kill(pid, 2);
@@ -151,21 +156,34 @@ JNIEXPORT void JNICALL Java_net_axiak_runutils_SpawnProcess_killProcess
 }
 
 /*
- * Class:     SpawnProcess
+ * Class:     SpawnedProcess
  * Method:    waitForProcess
  * Signature: (I)I
  */
-JNIEXPORT jint JNICALL Java_net_axiak_runutils_SpawnProcess_waitForProcess
+JNIEXPORT jint JNICALL Java_net_axiak_runutils_SpawnedProcess_waitForProcess
   (JNIEnv * env, jclass clazz, jint pid)
 {
     /* Read http://www.opengroup.org/onlinepubs/000095399/functions/wait.html */
     int stat_loc;
     errno = 0;
-    int retcode = waitpid(pid, &stat_loc, 0);
-    if (WIFEXITED(stat_loc) == 0) {
-        return -500;
+    while(waitpid(pid, &stat_loc, 0) < 0) {
+        switch (errno) {
+            case ECHILD:
+                return 0;
+            case EINTR:
+                break;
+            default:
+                return -1;
+        }
     }
-    return WEXITSTATUS(stat_loc);
+
+    if (WIFEXITED(stat_loc)) {
+        return WEXITSTATUS(stat_loc);
+    } else if (WIFSIGNALED(stat_loc)) {
+        return 0x80 + WTERMSIG(stat_loc);
+    } else {
+        return stat_loc;
+    }
 }
 
 
@@ -325,6 +343,13 @@ isExecutableEnd:
 	free(buffer);
 	free(path_copy);
 	return executable;
+}
+
+static void closeSafely(int fd)
+{
+    if (fd != -1) {
+        close(fd);
+    }
 }
 
 /*
