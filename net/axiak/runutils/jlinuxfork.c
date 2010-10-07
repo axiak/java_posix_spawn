@@ -9,7 +9,7 @@
 #include <unistd.h>
 #include <spawn.h>
 #include <fcntl.h>
-#include "spawnlib.h"
+#include "jlinuxfork.h"
 
 #define THROW_IO_EXCEPTION(cls, env) do { \
     cls = (*env)->FindClass(env, "java/io/IOException"); \
@@ -43,6 +43,7 @@ JNIEXPORT jint JNICALL Java_net_axiak_runutils_SpawnedProcess_execProcess
     char path[50] = "binrunner";
     int fds[3] = {1, 0, 2};
     int pipe_fd1[2], pipe_fd2[2], pipe_fd3[2];
+    pipe_fd1[0] = pipe_fd2[1] = pipe_fd2[0] = pipe_fd2[1] = pipe_fd3[0] = pipe_fd3[1] = -1;
     jobjectArray fdResult;
 
     if (pipe(pipe_fd1) != 0) {
@@ -128,6 +129,10 @@ JNIEXPORT jint JNICALL Java_net_axiak_runutils_SpawnedProcess_execProcess
 
     (*env)->ExceptionClear(env);
  Finally:
+    closeSafely(pipe_fd1[0]);
+    closeSafely(pipe_fd2[1]);
+    closeSafely(pipe_fd3[1]);
+
     /* Here we make sure we are good memory citizens. */
     freePargv(prepended_argv);
     if (argv != NULL)
@@ -141,6 +146,36 @@ JNIEXPORT jint JNICALL Java_net_axiak_runutils_SpawnedProcess_execProcess
     closeSafely(fds[2]);
     goto Finally;
 }
+
+/*
+ * Class:     net_axiak_runutils_SpawnedProcess
+ * Method:    closeDescriptor
+ * Signature: (Ljava/io/FileDescriptor;)V
+ */
+JNIEXPORT void JNICALL Java_net_axiak_runutils_SpawnedProcess_closeDescriptor
+  (JNIEnv * env, jobject clazz, jobject fd)
+{
+    jfieldID fid;
+    jclass cls;
+    int cfd;
+
+    cls = (*env)->FindClass(env, "java/io/FileDescriptor");
+
+    if (cls == NULL) {
+        return;
+    }
+
+    fid = (*env)->GetFieldID(env, cls, "fd", "I");
+    if (fid == NULL) {
+        return;
+    }
+
+    cfd = (*env)->GetIntField(env, fd, fid);
+    printf("closed: %d\n", cfd);
+    close(cfd);
+}
+
+
 
 /*
  * Class:     SpawnedProcess

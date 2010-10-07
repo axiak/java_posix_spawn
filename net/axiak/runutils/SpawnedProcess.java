@@ -25,10 +25,11 @@ public class SpawnedProcess extends Process {
                                    FileDescriptor stderr_fd) throws IndexOutOfBoundsException, IOException;
     private native int waitForProcess(int pid);
     private native void killProcess(int pid);
+    private native void closeDescriptor(FileDescriptor fd);
 
     static {
         try {
-            System.loadLibrary("spawnlib");
+            System.loadLibrary("jlinuxfork");
             libLoaded = true;
 	    }
         catch (Throwable t) {
@@ -160,6 +161,10 @@ public class SpawnedProcess extends Process {
                 killProcess(pid);
             }
         }
+        closeStreams();
+    }
+
+    private void closeStreams() {
         try {
             stdin.close();
         } catch (IOException e) {}
