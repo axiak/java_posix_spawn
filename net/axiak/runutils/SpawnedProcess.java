@@ -25,7 +25,6 @@ public class SpawnedProcess extends Process {
                                    FileDescriptor stderr_fd) throws IndexOutOfBoundsException, IOException;
     private native int waitForProcess(int pid);
     private native void killProcess(int pid);
-    private native void closeDescriptor(FileDescriptor fd);
 
     static {
         try {

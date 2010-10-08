@@ -31,14 +31,6 @@ JNIEXPORT jint JNICALL Java_net_axiak_runutils_SpawnedProcess_waitForProcess
 JNIEXPORT void JNICALL Java_net_axiak_runutils_SpawnedProcess_killProcess
   (JNIEnv *, jobject, jint);
 
-/*
- * Class:     net_axiak_runutils_SpawnedProcess
- * Method:    closeDescriptor
- * Signature: (Ljava/io/FileDescriptor;)V
- */
-JNIEXPORT void JNICALL Java_net_axiak_runutils_SpawnedProcess_closeDescriptor
-  (JNIEnv *, jobject, jobject);
-
 
 #ifdef __cplusplus
 }

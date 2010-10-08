@@ -148,36 +148,6 @@ JNIEXPORT jint JNICALL Java_net_axiak_runutils_SpawnedProcess_execProcess
 }
 
 /*
- * Class:     net_axiak_runutils_SpawnedProcess
- * Method:    closeDescriptor
- * Signature: (Ljava/io/FileDescriptor;)V
- */
-JNIEXPORT void JNICALL Java_net_axiak_runutils_SpawnedProcess_closeDescriptor
-  (JNIEnv * env, jobject clazz, jobject fd)
-{
-    jfieldID fid;
-    jclass cls;
-    int cfd;
-
-    cls = (*env)->FindClass(env, "java/io/FileDescriptor");
-
-    if (cls == NULL) {
-        return;
-    }
-
-    fid = (*env)->GetFieldID(env, cls, "fd", "I");
-    if (fid == NULL) {
-        return;
-    }
-
-    cfd = (*env)->GetIntField(env, fd, fid);
-    printf("closed: %d\n", cfd);
-    close(cfd);
-}
-
-
-
-/*
  * Class:     SpawnedProcess
  * Method:    killProcess
  * Signature: (I)V
