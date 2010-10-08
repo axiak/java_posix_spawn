@@ -1,10 +1,10 @@
-import net.axiak.runutils.*;
+import com.crunchtime.utils.runtime.*;
 import java.io.*;
 
 class TestClass {
     @SuppressWarnings("unused")
     public static void main(String [] args) {
-        //String[] memory_soaker = new String[10000];
+        String[] memory_soaker = new String[10000];
         String[] cmd = {"ls", "-l"};
 
         try {
@@ -14,10 +14,9 @@ class TestClass {
             }
 
             Process result = runtime.exec(cmd);
-        System.out.println(result.getInputStream());
-	    while (true) {
+	        while (true) {
                 System.out.print((char)result.getInputStream().read());
-	    }
+	        }
         } catch (IOException ignored) {
             System.out.println(ignored);
 	}

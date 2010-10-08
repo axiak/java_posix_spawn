@@ -26,11 +26,11 @@ int isExecutable(char * path);
 static void closeSafely(int fd);
 
 /*
- * Class:     net_axiak_runutils_SpawnedProcess
+ * Class:     com_crunchtime_utils_runtime_SpawnedProcess
  * Method:    execProcess
  * Signature: ([Ljava/lang/String;[Ljava/lang/String;Ljava/lang/String;Ljava/io/FileDescriptor;Ljava/io/FileDescriptor;Ljava/io/FileDescriptor;)I
  */
-JNIEXPORT jint JNICALL Java_net_axiak_runutils_SpawnedProcess_execProcess
+JNIEXPORT jint JNICALL Java_com_crunchtime_utils_runtime_SpawnedProcess_execProcess
 (JNIEnv * env, jclass clazz, jobjectArray cmdarray, jobjectArray envp, jstring chdir,
  jobject stdin_fd, jobject stdout_fd, jobject stderr_fd)
 {
@@ -152,7 +152,7 @@ JNIEXPORT jint JNICALL Java_net_axiak_runutils_SpawnedProcess_execProcess
  * Method:    killProcess
  * Signature: (I)V
  */
-JNIEXPORT void JNICALL Java_net_axiak_runutils_SpawnedProcess_killProcess
+JNIEXPORT void JNICALL Java_com_crunchtime_utils_runtime_SpawnedProcess_killProcess
   (JNIEnv * env, jclass clazz, jint pid)
 {
     kill(pid, 2);
@@ -165,7 +165,7 @@ JNIEXPORT void JNICALL Java_net_axiak_runutils_SpawnedProcess_killProcess
  * Method:    waitForProcess
  * Signature: (I)I
  */
-JNIEXPORT jint JNICALL Java_net_axiak_runutils_SpawnedProcess_waitForProcess
+JNIEXPORT jint JNICALL Java_com_crunchtime_utils_runtime_SpawnedProcess_waitForProcess
   (JNIEnv * env, jclass clazz, jint pid)
 {
     /* Read http://www.opengroup.org/onlinepubs/000095399/functions/wait.html */
