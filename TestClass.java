@@ -8,13 +8,10 @@ class TestClass {
         String[] cmd = {"ls", "-l"};
 
         try {
-            //Runtime runtime = Runtime.getRuntime();
-            SpawnRuntime runtime = SpawnRuntime.getInstance();
-            /*
+            SpawnRuntime runtime = new SpawnRuntime(Runtime.getRuntime());
             if (File.separatorChar == '/' && !runtime.isLinuxSpawnLoaded()) {
                 throw new RuntimeException("Boo!");
             }
-            */
 
             Process result = runtime.exec(cmd);
         System.out.println(result.getInputStream());

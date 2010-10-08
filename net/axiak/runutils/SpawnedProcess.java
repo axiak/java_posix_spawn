@@ -73,6 +73,17 @@ public class SpawnedProcess extends Process {
 
 
     public SpawnedProcess(final String [] cmdarray, final String [] envp, final File chdir) throws IOException {
+        for (String arg : cmdarray) {
+            if (arg == null) {
+                throw new NullPointerException();
+            }
+        }
+        String prog = cmdarray[0];
+        SecurityManager security = System.getSecurityManager();
+        if (security != null) {
+            security.checkExec(prog);
+        }
+
         stdin_fd = new FileDescriptor();
         stdout_fd = new FileDescriptor();
         stderr_fd = new FileDescriptor();
