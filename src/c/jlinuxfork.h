@@ -10,10 +10,10 @@ extern "C" {
 /*
  * Class:     com_crunchtime_utils_runtime_SpawnedProcess
  * Method:    execProcess
- * Signature: ([Ljava/lang/String;[Ljava/lang/String;Ljava/lang/String;Ljava/io/FileDescriptor;Ljava/io/FileDescriptor;Ljava/io/FileDescriptor;)I
+ * Signature: ([Ljava/lang/String;[Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/io/FileDescriptor;Ljava/io/FileDescriptor;Ljava/io/FileDescriptor;)I
  */
 JNIEXPORT jint JNICALL Java_com_crunchtime_utils_runtime_SpawnedProcess_execProcess
-  (JNIEnv *, jobject, jobjectArray, jobjectArray, jstring, jobject, jobject, jobject);
+  (JNIEnv *, jobject, jobjectArray, jobjectArray, jstring, jstring, jobject, jobject, jobject);
 
 /*
  * Class:     com_crunchtime_utils_runtime_SpawnedProcess

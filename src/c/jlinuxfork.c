@@ -11,11 +11,14 @@
 #include <fcntl.h>
 #include "jlinuxfork.h"
 
+extern char ** environ;
+
 #define THROW_IO_EXCEPTION(cls, env) do { \
     cls = (*env)->FindClass(env, "java/io/IOException"); \
     (*env)->ThrowNew(env, cls, sys_errlist[errno]); \
 } while (0)
 
+#define MAX_BUFFER_SIZE 131071
 
 char ** javaArrayToChar(JNIEnv * env, jobject array);
 void inline releaseCharArray(JNIEnv * env, jobject javaArray, char ** cArray);
@@ -28,23 +31,28 @@ static void closeSafely(int fd);
 /*
  * Class:     com_crunchtime_utils_runtime_SpawnedProcess
  * Method:    execProcess
- * Signature: ([Ljava/lang/String;[Ljava/lang/String;Ljava/lang/String;Ljava/io/FileDescriptor;Ljava/io/FileDescriptor;Ljava/io/FileDescriptor;)I
+ * Signature: ([Ljava/lang/String;[Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/io/FileDescriptor;Ljava/io/FileDescriptor;Ljava/io/FileDescriptor;)I
  */
 JNIEXPORT jint JNICALL Java_com_crunchtime_utils_runtime_SpawnedProcess_execProcess
 (JNIEnv * env, jclass clazz, jobjectArray cmdarray, jobjectArray envp, jstring chdir,
- jobject stdin_fd, jobject stdout_fd, jobject stderr_fd)
+ jstring jbinrunner, jobject stdin_fd, jobject stdout_fd, jobject stderr_fd)
 {
-    int cpid, retval, length;
+    int cpid = -1, length, i, total_buffer_size = 0;
     jboolean iscopy;
     char ** argv = NULL, ** c_envp = NULL, ** prepended_argv = NULL, *tmp;
     jstring program_name;
     jfieldID fid;
     jclass cls;
-    char path[50] = "binrunner";
+    char *path;
     int fds[3] = {1, 0, 2};
     int pipe_fd1[2], pipe_fd2[2], pipe_fd3[2];
-    pipe_fd1[0] = pipe_fd2[1] = pipe_fd2[0] = pipe_fd2[1] = pipe_fd3[0] = pipe_fd3[1] = -1;
     jobjectArray fdResult;
+    pipe_fd1[0] = pipe_fd2[1] = pipe_fd2[0] = pipe_fd2[1] = pipe_fd3[0] = pipe_fd3[1] = -1;
+
+    path = (char *)(*env)->GetStringUTFChars(env, jbinrunner, &iscopy);
+    if (path == NULL) {
+        goto Catch;
+    }
 
     if (pipe(pipe_fd1) != 0) {
         THROW_IO_EXCEPTION(cls, env);
@@ -70,7 +78,9 @@ JNIEXPORT jint JNICALL Java_com_crunchtime_utils_runtime_SpawnedProcess_execProc
         goto Catch;
     }
     program_name = (jstring)(*env)->GetObjectArrayElement(env, cmdarray, 0);
-    if ((c_envp = javaArrayToChar(env, envp)) == NULL) {
+    if (envp == NULL) {
+        c_envp = environ;
+    } else if ((c_envp = javaArrayToChar(env, envp)) == NULL) {
         goto Catch;
     }
 
@@ -84,27 +94,35 @@ JNIEXPORT jint JNICALL Java_com_crunchtime_utils_runtime_SpawnedProcess_execProc
 
     prepended_argv = createPrependedArgv(path, tmp, argv, length, fds);
 
-    /* Check to make sure the program is executable right before call. */
-    if (!isExecutable(path)) {
-      cls = (*env)->FindClass(env, "java/io/IOException");
-      (*env)->ThrowNew(env, cls, "Unable to run binrunner program -- please ensure that 'binrunner' is installed in a PATH location.");
-      goto Catch;
-    }
-	if (!isExecutable((char *)(*env)->GetStringUTFChars(env, program_name, &iscopy))) {
-      cls = (*env)->FindClass(env, "java/io/IOException");
-      (*env)->ThrowNew(env, cls, "Unable to run program -- please be sure it is installed with proper permissions.");
-      goto Catch;
+    if (prepended_argv == NULL) {
+        goto Catch;
     }
 
-    /* This is the call to spawn! */
-    retval = posix_spawnp(&cpid, path, NULL, NULL, prepended_argv, c_envp);
+    for (i = 0; prepended_argv[i] != NULL; ++i) {
+        total_buffer_size += strlen(prepended_argv[i]) + 1;
+    }
+    for (i = 0; c_envp[i] != NULL; ++i) {
+        total_buffer_size += strlen(c_envp[i]) + 1;
+    }
 
-    (*env)->ReleaseStringChars(env, chdir, (const jchar *)tmp);
+    if (total_buffer_size > MAX_BUFFER_SIZE) {
+        cls = (*env)->FindClass(env, "java/lang/IllegalArgumentException");
+        (*env)->ThrowNew(env, cls, "The environment and arguments combined require too much space.");
+        goto Catch;
+    }
 
-    if (retval != 0) {
+    cpid = vfork();
+    if (cpid == 0) {
+        if (execve(path, prepended_argv, c_envp) == -1) {
+            fprintf(stderr, "execve error: %s\n", strerror(errno));
+        }
+        _exit(-1);
+    } else if (cpid < 0) {
         THROW_IO_EXCEPTION(cls, env);
         goto Catch;
     }
+
+    (*env)->ReleaseStringChars(env, chdir, (const jchar *)tmp);
 
     /* Mapping for parent to pipe. */
     fds[0] = pipe_fd1[1];
@@ -137,8 +155,10 @@ JNIEXPORT jint JNICALL Java_com_crunchtime_utils_runtime_SpawnedProcess_execProc
     freePargv(prepended_argv);
     if (argv != NULL)
         releaseCharArray(env, cmdarray, argv);
-   if (envp != NULL)
+    if (envp != NULL)
         releaseCharArray(env, envp, c_envp);
+    if (path != NULL)
+        (*env)->ReleaseStringChars(env, jbinrunner, (jchar *)path);
     return cpid;
  Catch:
     closeSafely(fds[0]);
@@ -213,11 +233,14 @@ char ** javaArrayToChar(JNIEnv * env, jobject array)
 void inline releaseCharArray(JNIEnv * env, jobject javaArray, char ** cArray)
 {
     int i, length =  (*env)->GetArrayLength(env, javaArray);
+    if (cArray == NULL)
+        return;
 
     for (i = 0; i < length; i++) {
-        (*env)->ReleaseStringChars(env,
-                                   (jstring)(*env)->GetObjectArrayElement(env, javaArray, i),
-                                   (jchar *)cArray[i]);
+        if (cArray[i] != NULL)
+            (*env)->ReleaseStringChars(env,
+                (jstring)(*env)->GetObjectArrayElement(env, javaArray, i),
+                (jchar *)cArray[i]);
     }
     free(cArray);
 }

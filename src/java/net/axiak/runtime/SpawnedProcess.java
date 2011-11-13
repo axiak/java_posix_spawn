@@ -1,4 +1,4 @@
-package com.crunchtime.utils.runtime;
+package net.axiak.runtime;
 
 import java.io.*;
 import java.security.AccessController;
@@ -17,18 +17,25 @@ public class SpawnedProcess extends Process {
     public FileDescriptor stdout_fd;
     private FileDescriptor stderr_fd;
 
+    private static String binrunner;
     private static boolean libLoaded;
     private static Throwable libLoadError;
 
-    private native int execProcess(String [] cmdarray, String [] env, String chdir,
+    private native int execProcess(String [] cmdarray, String [] env, String chdir, String binrunner,
                                    FileDescriptor stdin_fd, FileDescriptor stdout_fd,
                                    FileDescriptor stderr_fd) throws IndexOutOfBoundsException, IOException;
     private native int waitForProcess(int pid);
     private native void killProcess(int pid);
 
     static {
+        binrunner = findBinRunner(System.getProperty("posixspawn.binrunner", "binrunner"));
         try {
-            System.loadLibrary("jlinuxfork");
+            String arch = System.getProperty("os.arch", "i386");
+            try {
+                System.loadLibrary("jlinuxfork-" + arch);
+            } catch (Throwable t) {
+                System.loadLibrary("jlinuxfork");
+            }
             libLoaded = true;
 	    }
         catch (Throwable t) {
@@ -37,6 +44,24 @@ public class SpawnedProcess extends Process {
         }
     }
 
+    private static String findBinRunner(String originalPath) {
+        if (new File(originalPath).exists()) {
+            return originalPath;
+        }
+        String Path = System.getenv("PATH");
+        String [] paths = ((Path == null) ? "/usr/bin:/bin" : Path).split(":");
+        for (String path: paths) {
+            if (path == null) {
+                continue;
+            }
+            File currentFile = new File(path, originalPath);
+            if (currentFile.exists()) {
+                return currentFile.getAbsolutePath();
+            }
+        }
+        return null;
+    }
+    
     private static class Gate {
 
         private boolean exited = false;
@@ -72,6 +97,11 @@ public class SpawnedProcess extends Process {
 
 
     public SpawnedProcess(final String [] cmdarray, final String [] envp, final File chdir) throws IOException {
+
+        if (binrunner == null) {
+            throw new RuntimeException("Couldn't find binrunner program. Tried: " + System.getProperty("linuxfork.binrunner", "binrunner"));
+        }
+
         for (String arg : cmdarray) {
             if (arg == null) {
                 throw new NullPointerException();
@@ -93,7 +123,7 @@ public class SpawnedProcess extends Process {
                 new PrivilegedAction<Object>()  {
                     public Object run() {
                         try {
-                            pid = execProcess(cmdarray, envp, chdir.getAbsolutePath(), stdin_fd, stdout_fd, stderr_fd);
+                            pid = execProcess(cmdarray, envp, chdir.getAbsolutePath(), binrunner, stdin_fd, stdout_fd, stderr_fd);
                         } catch (IOException e) {
                             gate.setException(e);
                             gate.exit();

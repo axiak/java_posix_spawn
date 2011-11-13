@@ -12,7 +12,7 @@
 int main(int argc, char ** argv)
 {
     int fds_map[3] = {-1, -1, -1};
-    int i, params;
+    int i;
     char ** new_argv;
 
     if (argc < 6) {
@@ -20,7 +20,7 @@ int main(int argc, char ** argv)
                 argv[0]);
         return -1;
     }
-    
+
     fds_map[0] = atoi(argv[1]);
     fds_map[1] = atoi(argv[2]);
     fds_map[2] = atoi(argv[3]);

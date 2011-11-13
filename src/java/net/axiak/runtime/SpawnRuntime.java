@@ -1,4 +1,4 @@
-package com.crunchtime.utils.runtime;
+package net.axiak.runtime;
 
 import java.io.File;
 import java.io.IOException;
@@ -27,12 +27,12 @@ public class SpawnRuntime {
     }
 
     public Process exec(String [] cmdarray) throws IOException {
-        return exec(cmdarray, new String[0]);
+        return exec(cmdarray, null);
     }
 
     public Process exec(String command) throws IOException {
         String[] cmdarray = {command};
-        return exec(command, new String[0], new File("."));
+        return exec(command, null, new File("."));
     }
 
     public Process exec(String command, String[] envp, File dir) throws IOException {
