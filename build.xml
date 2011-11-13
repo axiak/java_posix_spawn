@@ -4,6 +4,7 @@
   <property name="app.path"      value="."/>
   <property name="build.path"    value="${app.path}/build"/>
   <property name="target.path"   value="${app.path}/target"/>
+  <property name="doc.path"      value="${app.path}/docs"/>
   <property name="c.source.path" value="${app.path}/src/c"/>
   <property name="make.path"     value="/usr/bin/make"/>
   <property name="debug"         value="on"/>
@@ -19,6 +20,12 @@
   <target name="prepare">
     <mkdir dir="${target.path}"/>
     <mkdir dir="${build.path}"/>
+  </target>
+
+  <target name="docs">
+    <javadoc sourcepath="${app.path}/src/java"
+             destdir="${doc.path}"
+             maxmemory="200m" />
   </target>
 
   <target name="compile-spawn" depends="prepare">
