@@ -47,7 +47,7 @@ JNIEXPORT jint JNICALL Java_net_axiak_runtime_SpawnedProcess_execProcess
     int fds[3] = {1, 0, 2};
     int pipe_fd1[2], pipe_fd2[2], pipe_fd3[2];
     jobjectArray fdResult;
-    pipe_fd1[0] = pipe_fd2[1] = pipe_fd2[0] = pipe_fd2[1] = pipe_fd3[0] = pipe_fd3[1] = -1;
+    pipe_fd1[0] = pipe_fd1[1] = pipe_fd2[0] = pipe_fd2[1] = pipe_fd3[0] = pipe_fd3[1] = -1;
 
     path = (char *)(*env)->GetStringUTFChars(env, jbinrunner, &iscopy);
     if (path == NULL) {

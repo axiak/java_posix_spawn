@@ -26,7 +26,7 @@
   </target>
 
   <target name="compile-shared" depends="prepare">
-    <exec dir="${app.path}" executable="/usr/bin/make" />
+    <exec dir="${app.path}" executable="/usr/bin/make" failonerror="true" />
   </target>
 
   <target name="compile" depends="compile-spawn,compile-shared"/>
