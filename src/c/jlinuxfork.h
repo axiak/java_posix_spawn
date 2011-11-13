@@ -2,33 +2,33 @@
 #include <jni.h>
 /* Header for class com_crunchtime_utils_runtime_SpawnedProcess */
 
-#ifndef _Included_com_crunchtime_utils_runtime_SpawnedProcess
-#define _Included_com_crunchtime_utils_runtime_SpawnedProcess
+#ifndef _Included_net_axiak_runtime_SpawnedProcess
+#define _Included_net_axiak_runtime_SpawnedProcess
 #ifdef __cplusplus
 extern "C" {
 #endif
 /*
- * Class:     com_crunchtime_utils_runtime_SpawnedProcess
+ * Class:     net_axiak_runtime_SpawnedProcess
  * Method:    execProcess
  * Signature: ([Ljava/lang/String;[Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/io/FileDescriptor;Ljava/io/FileDescriptor;Ljava/io/FileDescriptor;)I
  */
-JNIEXPORT jint JNICALL Java_com_crunchtime_utils_runtime_SpawnedProcess_execProcess
+JNIEXPORT jint JNICALL Java_net_axiak_runtime_SpawnedProcess_execProcess
   (JNIEnv *, jobject, jobjectArray, jobjectArray, jstring, jstring, jobject, jobject, jobject);
 
 /*
- * Class:     com_crunchtime_utils_runtime_SpawnedProcess
+ * Class:     net_axiak_runtime_SpawnedProcess
  * Method:    waitForProcess
  * Signature: (I)I
  */
-JNIEXPORT jint JNICALL Java_com_crunchtime_utils_runtime_SpawnedProcess_waitForProcess
+JNIEXPORT jint JNICALL Java_net_axiak_runtime_SpawnedProcess_waitForProcess
   (JNIEnv *, jobject, jint);
 
 /*
- * Class:     com_crunchtime_utils_runtime_SpawnedProcess
+ * Class:     net_axiak_runtime_SpawnedProcess
  * Method:    killProcess
  * Signature: (I)V
  */
-JNIEXPORT void JNICALL Java_com_crunchtime_utils_runtime_SpawnedProcess_killProcess
+JNIEXPORT void JNICALL Java_net_axiak_runtime_SpawnedProcess_killProcess
   (JNIEnv *, jobject, jint);
 
 

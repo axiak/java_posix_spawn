@@ -1,4 +1,4 @@
-import com.crunchtime.utils.runtime.*;
+import net.axiak.runtime.*;
 import java.io.*;
 
 class TestClass {
@@ -10,15 +10,19 @@ class TestClass {
         try {
             SpawnRuntime runtime = new SpawnRuntime(Runtime.getRuntime());
             if (File.separatorChar == '/' && !runtime.isLinuxSpawnLoaded()) {
-                throw new RuntimeException("Boo!");
+                throw new RuntimeException("Cannot run because the spawn isn't loaded even though this is not Windows.");
             }
 
             Process result = runtime.exec(cmd);
-	        while (true) {
-                System.out.print((char)result.getInputStream().read());
-	        }
+          int lastChar = 0;
+          do {
+            lastChar = result.getInputStream().read();
+            if (lastChar != -1)
+              System.out.print((char)lastChar);
+          } while(lastChar != -1);
+
         } catch (IOException ignored) {
             System.out.println(ignored);
-	}
+	    }
     }
 }
