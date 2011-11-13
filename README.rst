@@ -111,6 +111,15 @@ The library is actually slightly misnamed -- rather than using ``posix_spawn`` b
 fails. By calling ``vfork`` manually, the application can safely write an error
 to ``stderr`` rather than keeping completely silent.
 
+Documentation
+=============
+
+Beyond this README, I put up a shell of the API at http://axiak.github.com/java_posix_spawn/
+The API is supposed to mirror that of Java's Runtime, so it shouldn't be anything new. The only
+added method is ``SpawnRuntime.isLinuxSpawnLoaded()``, which indicates if the java library was
+successfully able to load the dynamic library. On Windows you would expect that method to always
+return false.
+
 Dependencies
 =============
 
