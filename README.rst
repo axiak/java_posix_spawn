@@ -93,6 +93,16 @@ The trick to get around this limitation of ``vfork`` is to create an intermediar
 
 So essentially you tell it what file descriptors you want redirected, what directory you want to change into, what program you want to run, and you complete running arguments at the end to pass to the next program. Binrunner will then perform the pipe redirection, call chdir() and then call execvp.
 
+So this is how this library will spawn a new process:
+
+1. Create 3 pipes
+2. Call vfork
+3. Run binrunner with the pipe information, the new directory, and the program information
+4. binrunner redirects the pipes
+5. binrunner calls ``chdir()``
+6. binrunner calls ``execvp`` to run the application (and ``brk``)
+
+
 
 vfork rather than posix_spawn
 -----------------------------
@@ -115,6 +125,11 @@ Supported Platforms
 The API is written such that it will fall back to the standard java Runtime API if it cannot load the dynamic libraries. This means that windows can just run the java code without any support for compilation (since its Runtime exec doesn't suffer from the but, it's safe).
 
 As for non-windows systems, this library was tested on linux 32- and 64-bit. No testing has been done on other posix-compliant systems, but the code strictly adheres to posix standards.
+
+License
+=======
+
+The library is released in the Modified BSD License. See LICENSE for more detail.
 
 Known Bugs
 ==========
