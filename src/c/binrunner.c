@@ -14,6 +14,8 @@ int main(int argc, char ** argv)
     int fds_map[3] = {-1, -1, -1};
     int i;
     char ** new_argv;
+    int open_max;
+    int open_index;
 
     if (argc < 6) {
         fprintf(stderr, "Usage: %s stdin# stdout# stderr# chdir program [argv0 ... ]\n",
@@ -44,6 +46,13 @@ int main(int argc, char ** argv)
         new_argv[i - 5] = argv[i];
     }
     new_argv[argc - 5] = NULL;
+
+    open_max = sysconf(_SC_OPEN_MAX); 
+    for(open_index=3;open_index < open_max; open_index++) {
+       
+	    fcntl(open_index, F_SETFD, FD_CLOEXEC);
+        
+    }
 
     if (execvp(argv[5], new_argv) == -1) {
         fprintf(stderr, "Error: %s\n", strerror(errno));
