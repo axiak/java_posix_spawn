@@ -40,7 +40,6 @@ JNIEXPORT jint JNICALL Java_net_axiak_runtime_SpawnedProcess_execProcess
     int cpid = -1, length, i, total_buffer_size = 0;
     jboolean iscopy;
     char ** argv = NULL, ** c_envp = NULL, ** prepended_argv = NULL, *tmp;
-    jstring program_name;
     jfieldID fid;
     jclass cls;
     char *path;
@@ -77,7 +76,6 @@ JNIEXPORT jint JNICALL Java_net_axiak_runtime_SpawnedProcess_execProcess
     if ((argv = javaArrayToChar(env, cmdarray)) == NULL) {
         goto Catch;
     }
-    program_name = (jstring)(*env)->GetObjectArrayElement(env, cmdarray, 0);
     if (envp == NULL) {
         c_envp = environ;
     } else if ((c_envp = javaArrayToChar(env, envp)) == NULL) {
