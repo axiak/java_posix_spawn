@@ -24,7 +24,7 @@ Simple Install
 The simplest install is to just install the components to the operating system.
 This requires no configuration at run time and can be built thus::
 
-    $ git clone clone https://axiak@github.com/axiak/java_posix_spawn.git
+    $ git clone https://axiak@github.com/axiak/java_posix_spawn.git
     $ cd java_posix_spawn
     $ ant
     $ cd target
